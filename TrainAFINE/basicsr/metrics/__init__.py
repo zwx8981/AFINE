@@ -2,8 +2,10 @@ from copy import deepcopy
 
 from basicsr.utils.registry import METRIC_REGISTRY
 from .accuracy import calculate_nr_accuracy, calculate_all_accuracy, calculate_all_accuracy_higher_better, calculate_nr_accuracy_higher_better
+from .iqa_metrics import calculate_iqa_metrics
 
-__all__ = ['calculate_nr_accuracy', 'calculate_all_accuracy', 'calculate_all_accuracy_higher_better', 'calculate_nr_accuracy_higher_better']
+__all__ = ['calculate_nr_accuracy', 'calculate_all_accuracy', 'calculate_all_accuracy_higher_better',
+           'calculate_nr_accuracy_higher_better', 'calculate_iqa_metrics']
 
 
 def calculate_metric(data, opt):

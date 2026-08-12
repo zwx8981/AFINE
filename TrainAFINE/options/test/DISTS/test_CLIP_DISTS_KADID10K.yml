@@ -1,0 +1,36 @@
+name: CLIP_DISTS_KADID10K_test
+model_type: KADID10KDISTSModel
+num_gpu: 1
+manual_seed: 0
+datasets:
+  test:
+    name: KADID10K_test
+    type: KADID10KJsonlDataset
+    jsonl_path: /path/to/kadid10k_test.jsonl
+    image_root: /path/to/kadid10k/images
+    mean: [0.48145466, 0.4578275, 0.40821073]
+    std: [0.26862954, 0.26130258, 0.27577711]
+network_dhead:
+  type: AFINEDhead
+  chns: [3, 768, 768, 768, 768, 768, 768, 768, 768, 768, 768, 768, 768]
+path:
+  pretrain_network_g: ~
+  strict_load_g: true
+  resume_state: ~
+path_dhead:
+  pretrain_network_dhead: experiments/CLIP_DISTS_KADID10K/models/net_dhead_latest.pth
+  strict_load_dhead: true
+  param_key_dhead: params
+path_CLIP:
+  pretrain_CLIP_path: experiments/pretrained_models/CLIP/ViT-B-16.pt
+  mode: Original
+score: {min: 1.0, max: 5.0, higher_better: true}
+val:
+  save_img: false
+  logistic_mapping: true
+  metrics:
+    SRCC: {better: higher}
+    PLCC: {better: higher}
+    KRCC: {better: higher}
+    RMSE: {better: lower}
+dist_params: {backend: nccl, port: 29500}

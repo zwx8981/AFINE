@@ -233,14 +233,20 @@ class VisionTransformer(nn.Module):
 
     def forward(self, x: torch.Tensor):
         x = self.conv1(x)  # shape = [*, width, grid, grid]
+        grid_h, grid_w = x.shape[-2:]
         x = x.reshape(x.shape[0], x.shape[1], -1)  # shape = [*, width, grid ** 2]
         x = x.permute(0, 2, 1)  # shape = [*, grid ** 2, width]
         x = torch.cat([self.class_embedding.to(x.dtype) + torch.zeros(x.shape[0], 1, x.shape[-1], dtype=x.dtype, device=x.device), x], dim=1)  # shape = [*, grid ** 2 + 1, width]
 
-        pos_shape = self.positional_embedding.shape
-        positional_embedding = self.positional_embedding.unsqueeze(0).unsqueeze(0)
-        positional_embedding = F.interpolate(positional_embedding, size=(x.shape[1], pos_shape[1]), mode = 'bicubic', align_corners = False)
-        positional_embedding = positional_embedding.squeeze(0).squeeze(0)
+        cls_position = self.positional_embedding[:1]
+        patch_position = self.positional_embedding[1:]
+        source_grid = int(round(patch_position.shape[0]**0.5))
+        if source_grid * source_grid != patch_position.shape[0]:
+            raise ValueError('CLIP visual positional embedding must use a square source grid')
+        patch_position = patch_position.reshape(1, source_grid, source_grid, -1).permute(0, 3, 1, 2)
+        patch_position = F.interpolate(patch_position, size=(grid_h, grid_w), mode='bicubic', align_corners=False)
+        patch_position = patch_position.permute(0, 2, 3, 1).reshape(grid_h * grid_w, -1)
+        positional_embedding = torch.cat((cls_position, patch_position), dim=0)
 
         x = x + positional_embedding.to(x.dtype)
         x = self.ln_pre(x)
