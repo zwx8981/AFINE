@@ -445,3 +445,43 @@ The adaptive term:
                 param_key_finalscore: params
 ```
 You are supposed to download the well-trained ```net_finalscore.pth```.
+
+## 5. Train CLIP-DISTS on KADID-10k JSONL
+
+The KADID-10k full-reference experiment reuses the Stage 2 training framework and
+`AFINEDhead`, but each sample contains only a reference image, a distorted image,
+and its MOS.  Train, validation, and test splits are supplied as separate JSONL
+files.  In each record the first image in the user content is the reference, the
+second is the distorted image, and the assistant text is parsed as a floating
+point MOS.
+
+Edit `jsonl_path`, `image_root`, and the ViT-B/16 checkpoint path in
+`options/train/DISTS/train_CLIP_DISTS_KADID10K.yml`, then run:
+
+```bash
+cd TrainAFINE
+CUDA_VISIBLE_DEVICES=0 python basicsr/train.py \
+  -opt options/train/DISTS/train_CLIP_DISTS_KADID10K.yml --auto_resume
+```
+
+For distributed training, use the same launcher as Stage 2:
+
+```bash
+CUDA_VISIBLE_DEVICES=0,1,2,3 python -m torch.distributed.launch \
+  --nproc_per_node=4 --master_port=1234 basicsr/train.py \
+  -opt options/train/DISTS/train_CLIP_DISTS_KADID10K.yml \
+  --launcher pytorch --auto_resume
+```
+
+After setting the test JSONL and trained `net_dhead` paths, evaluate with:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python basicsr/test.py \
+  -opt options/test/DISTS/test_CLIP_DISTS_KADID10K.yml
+```
+
+MOS is assumed to lie in `[1, 5]` and to be higher-is-better.  These assumptions
+are configurable under `score`.  The model converts MOS to a distance target for
+training, while validation reports quality-oriented SRCC, PLCC, KRCC, and RMSE
+over the complete split.  PLCC and RMSE use the standard five-parameter logistic
+mapping by default.
