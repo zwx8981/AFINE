@@ -22,8 +22,12 @@ def calculate_iqa_metrics(predictions, targets, logistic_mapping=True):
         except (RuntimeError, ValueError, OverflowError):
             mapped = predictions
     return {
-        'SRCC': float(spearmanr(predictions, targets).statistic),
-        'PLCC': float(pearsonr(mapped, targets).statistic),
-        'KRCC': float(kendalltau(predictions, targets).statistic),
+        # SciPy's correlation result objects are tuple-like across supported
+        # versions, while the named ``statistic`` attribute is only available
+        # in newer releases.  Indexing keeps validation compatible with the
+        # older SciPy commonly installed alongside Python 3.8.
+        'SRCC': float(spearmanr(predictions, targets)[0]),
+        'PLCC': float(pearsonr(mapped, targets)[0]),
+        'KRCC': float(kendalltau(predictions, targets)[0]),
         'RMSE': float(np.sqrt(np.mean((mapped - targets)**2)))
     }
