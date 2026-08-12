@@ -1,9 +1,18 @@
 import datetime
 import logging
 import math
+import sys
 import time
 import torch
 from os import path as osp
+
+# When this file is executed directly, Python puts ``basicsr/`` rather than the
+# project root at the front of sys.path.  An installed BasicSR package can then
+# shadow this repository's customized package (including its CLI options).
+project_root = osp.abspath(osp.join(osp.dirname(__file__), osp.pardir))
+if project_root in sys.path:
+    sys.path.remove(project_root)
+sys.path.insert(0, project_root)
 
 from basicsr.data import build_dataloader, build_dataset
 from basicsr.data.data_sampler import EnlargedSampler
@@ -22,7 +31,14 @@ def init_tb_loggers(opt):
         init_wandb_logger(opt)
     tb_logger = None
     if opt['logger'].get('use_tb_logger') and 'debug' not in opt['name']:
-        tb_logger = init_tb_logger(log_dir=osp.join(opt['root_path'], 'tb_logger', opt['name']))
+        try:
+            tb_logger = init_tb_logger(log_dir=osp.join(opt['root_path'], 'tb_logger', opt['name']))
+        except Exception as error:
+            # TensorBoard is optional and old TensorFlow installations can be
+            # incompatible with the active NumPy version.  Do not prevent the
+            # actual training job from starting when only summary logging fails.
+            get_root_logger().warning('TensorBoard initialization failed; continuing without it: %s', error)
+            opt['logger']['use_tb_logger'] = False
     return tb_logger
 
 
